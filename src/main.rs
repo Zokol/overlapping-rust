@@ -29,6 +29,7 @@ fn compress(word_list: &Vec<&str>) {
     permutations.sort_by(|a, b| b.2.len().cmp(&a.2.len()));
     
     // Count the occurance of each suffix word, to select the rarest suffix word which has best overlapping score
+    // TODO: Fix this, as the best score is not always best starting word.
     let mut next_word_scores = HashMap::new();
     for permutation in permutations.iter() {
         let next_word_score = next_word_scores.entry(permutation.0).or_insert(0);
