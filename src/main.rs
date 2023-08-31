@@ -5,23 +5,32 @@
 
 
 use core::ops::Range;
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, ops::RangeBounds};
 
 const INPUT: [&str; 5] = ["pleasure", "apple", "rendered", "clap", "suren"];
 
 fn main() {
     println!("{:?}", INPUT);
     let input = INPUT.to_vec();
-    compress(&input);
+    let output = compress(&input);
+    println!("{:?}", output);
+    print_compressed(output);
 }
 
-fn compress(word_list: &Vec<&str>) {
+fn print_compressed(permutations: Vec<(&str, &str, Range<usize>)>) {
+    let mut indentation = 0;
+    for permutation in permutations.into_iter() {
+        println!("{}{}", " ".repeat(indentation), permutation.0);
+        indentation += permutation.2.start;
+    }
+}
+
+fn compress<'a>(word_list: &'a Vec<&'a str>) -> Vec<(&'a str, &'a str, std::ops::Range<usize>)> {
     let mut output = Vec::new();
     let mut used_words = Vec::new();
 
     // find all permutations of word1+word2
-    let mut permutations = Vec::new();
-    permutations = score_overlaps(word_list);
+    let mut permutations = score_overlaps(word_list);
 
     // find permutation with maximum overlapping range, where the word1 does not exist in any other permutation word2
     // remove permutation from permutations
@@ -53,7 +62,7 @@ fn compress(word_list: &Vec<&str>) {
 
     println!();
     println!("CHOOSING FIRST WORD: {:?}", next_word_scores);
-    let mut best_starting_word = next_word_scores.iter().max_by_key(|x| x.1).unwrap(); // TODO: What?? Maybe this could be rewritten to be readable
+    let best_starting_word = next_word_scores.iter().max_by_key(|x| x.1).unwrap(); // TODO: What?? Maybe this could be rewritten to be readable
     let mut next_word = best_starting_word.0.clone().clone();
     used_words.push(next_word);
 
@@ -64,19 +73,21 @@ fn compress(word_list: &Vec<&str>) {
     // find permutation with maximum overlapping range, where the word1 is the the word2 of previous permutation
     // remove permutation from permutations
     // add word2 to wordlist
+    let mut combination = Vec::new();
     let mut cannot_find_next_word = true;
     while used_words.len() < word_list.len() {
         cannot_find_next_word = true;
-        for permutation in permutations.iter() {
+        for permutation in permutations.clone().into_iter() {
             if(permutation.2.len() == 0) {
                 println!("Cannot find next word");
                 output.push(next_word);
                 break;
             }
-            if(permutation.0.eq(&next_word) && !used_words.contains(&permutation.1)) {
+            if(permutation.0.eq(next_word) && !used_words.contains(&permutation.1)) {
                 println!("next: {:?}", permutation);
+                combination.push(permutation.clone());
                 let truncated_word = &permutation.0[..permutation.2.start];
-                next_word = permutation.1.clone().clone();
+                next_word = permutation.1;
                 used_words.push(next_word);
                 println!("truncated: {}, next: {}, score: {}", truncated_word, next_word, permutation.2.len());
                 output.push(truncated_word);
@@ -92,15 +103,17 @@ fn compress(word_list: &Vec<&str>) {
         output.push(next_word);
     }
 
-    println!("Output: {:?}", output)
+    println!("{}", output.join(""));
+
+    return combination;
     
 }
 
-fn score_overlaps<'a>(word_list: &'a Vec<&'a str>) -> Vec<(&'a &'a str, &'a &'a str, Range<usize>)> {
+fn score_overlaps<'a>(word_list: &'a Vec<&'a str>) -> Vec<(&'a str, &'a str, Range<usize>)> {
     let mut permutations = Vec::new();
-    for prefix in word_list.iter() {
-        for suffix in word_list.iter() {
-            let mut overlap_range = find_overlap(prefix, suffix);
+    for &prefix in word_list.into_iter() {
+        for &suffix in word_list.into_iter() {
+            let overlap_range = find_overlap(prefix, suffix);
             permutations.push((prefix, suffix, overlap_range.clone()));
             print_overlap(&prefix, &suffix, overlap_range)
         }
