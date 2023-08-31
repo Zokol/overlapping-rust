@@ -5,7 +5,7 @@
 
 
 use core::ops::Range;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 const INPUT: [&str; 5] = ["pleasure", "apple", "rendered", "clap", "suren"];
 
@@ -27,15 +27,32 @@ fn compress(word_list: &Vec<&str>) {
     // remove permutation from permutations
     // add permutation (word1+word2) to wordlist
     permutations.sort_by(|a, b| b.2.len().cmp(&a.2.len()));
+
+    println!();
+    println!("Sorted permutations: {:?}", permutations);
+
+    let first_words : HashSet<_> = permutations.iter().filter(|(_,_,r)| r.len() != 0).map(|x| x.0).collect();
+    let last_words : HashSet<_> = permutations.iter().filter(|(_,_,r)| r.len() != 0).map(|x| x.1).collect();
+
+    println!("First: {:?}", first_words);
+    println!("Last: {:?}", last_words);
+
+    let possible_first_words : HashSet<_> = first_words.difference(&last_words).collect();
+
+    println!("Possible first words: {:?}", possible_first_words);
     
     // Count the occurance of each suffix word, to select the rarest suffix word which has best overlapping score
     // TODO: Fix this, as the best score is not always best starting word.
-    let mut next_word_scores = HashMap::new();
+    let mut next_word_scores: HashMap<&str, usize> = HashMap::new();
     for permutation in permutations.iter() {
-        let next_word_score = next_word_scores.entry(permutation.0).or_insert(0);
-        *next_word_score += permutation.2.len();
+        if possible_first_words.contains(&permutation.0) {
+            let next_word_score = next_word_scores.entry(permutation.0).or_insert(0);
+            *next_word_score += permutation.2.len();
+        }
     }
-    println!("{:?}", next_word_scores);
+
+    println!();
+    println!("CHOOSING FIRST WORD: {:?}", next_word_scores);
     let mut best_starting_word = next_word_scores.iter().max_by_key(|x| x.1).unwrap(); // TODO: What?? Maybe this could be rewritten to be readable
     let mut next_word = best_starting_word.0.clone().clone();
     used_words.push(next_word);
@@ -47,8 +64,9 @@ fn compress(word_list: &Vec<&str>) {
     // find permutation with maximum overlapping range, where the word1 is the the word2 of previous permutation
     // remove permutation from permutations
     // add word2 to wordlist
+    let mut cannot_find_next_word = true;
     while used_words.len() < word_list.len() {
-        let mut cannot_find_next_word = true;
+        cannot_find_next_word = true;
         for permutation in permutations.iter() {
             if(permutation.2.len() == 0) {
                 println!("Cannot find next word");
@@ -69,6 +87,9 @@ fn compress(word_list: &Vec<&str>) {
         if(cannot_find_next_word) {
             break;
         }
+    }
+    if(!cannot_find_next_word) {
+        output.push(next_word);
     }
 
     println!("Output: {:?}", output)
